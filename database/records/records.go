@@ -215,7 +215,17 @@ func migrateOldRecords(db *gorm.DB) error {
 		Process        []int
 		Connections    []int
 		ConnectionsUdp []int
-		Uptime         []int64
+		TimeWait        []int
+		RetransmitRate  []float32
+		IoWait          []float32
+		DiskReadSpeed   []int64
+		DiskWriteSpeed  []int64
+		DiskAvgQueueLen []float32
+		DiskAvgWaitTime []float32
+		NetRxDropped    []int64
+		NetTxDropped    []int64
+		SoftIrqPct      []float32
+		Uptime          []int64
 	}
 
 	groupedRecords := make(map[string]*groupData)
@@ -242,6 +252,16 @@ func migrateOldRecords(db *gorm.DB) error {
 		data.Process = append(data.Process, record.Process)
 		data.Connections = append(data.Connections, record.Connections)
 		data.ConnectionsUdp = append(data.ConnectionsUdp, record.ConnectionsUdp)
+		data.TimeWait = append(data.TimeWait, record.TimeWait)
+		data.RetransmitRate = append(data.RetransmitRate, record.RetransmitRate)
+		data.IoWait = append(data.IoWait, record.IoWait)
+		data.DiskReadSpeed = append(data.DiskReadSpeed, record.DiskReadSpeed)
+		data.DiskWriteSpeed = append(data.DiskWriteSpeed, record.DiskWriteSpeed)
+		data.DiskAvgQueueLen = append(data.DiskAvgQueueLen, record.DiskAvgQueueLen)
+		data.DiskAvgWaitTime = append(data.DiskAvgWaitTime, record.DiskAvgWaitTime)
+		data.NetRxDropped = append(data.NetRxDropped, record.NetRxDropped)
+		data.NetTxDropped = append(data.NetTxDropped, record.NetTxDropped)
+		data.SoftIrqPct = append(data.SoftIrqPct, record.SoftIrqPct)
 		//data.Uptime = append(data.Uptime, record.Uptime)
 	}
 
@@ -317,6 +337,15 @@ func migrateOldRecords(db *gorm.DB) error {
 				return err
 			}
 
+			retransmitFloats := make([]float64, len(data.RetransmitRate))
+			for i, v := range data.RetransmitRate {
+				retransmitFloats[i] = float64(v)
+			}
+			ioWaitFloats := make([]float64, len(data.IoWait))
+			for i, v := range data.IoWait {
+				ioWaitFloats[i] = float64(v)
+			}
+
 			newRec := models.Record{
 				Client:         clientUUID,
 				Time:           models.FromTime(timeSlot),
@@ -337,6 +366,28 @@ func migrateOldRecords(db *gorm.DB) error {
 				Process:        getInt32Percentile(data.Process, high_percentile),
 				Connections:    getInt32Percentile(data.Connections, high_percentile),
 				ConnectionsUdp: getInt32Percentile(data.ConnectionsUdp, high_percentile),
+				TimeWait:       getInt32Percentile(data.TimeWait, high_percentile),
+				RetransmitRate: float32(getPercentile(retransmitFloats, high_percentile)),
+				IoWait:         float32(getPercentile(ioWaitFloats, high_percentile)),
+				DiskReadSpeed:  getIntPercentile(data.DiskReadSpeed, high_percentile),
+				DiskWriteSpeed: getIntPercentile(data.DiskWriteSpeed, high_percentile),
+				DiskAvgQueueLen: func() float32 {
+					floats := make([]float64, len(data.DiskAvgQueueLen))
+					for i, v := range data.DiskAvgQueueLen { floats[i] = float64(v) }
+					return float32(getPercentile(floats, high_percentile))
+				}(),
+				DiskAvgWaitTime: func() float32 {
+					floats := make([]float64, len(data.DiskAvgWaitTime))
+					for i, v := range data.DiskAvgWaitTime { floats[i] = float64(v) }
+					return float32(getPercentile(floats, high_percentile))
+				}(),
+				NetRxDropped:   getIntPercentile(data.NetRxDropped, high_percentile),
+				NetTxDropped:   getIntPercentile(data.NetTxDropped, high_percentile),
+				SoftIrqPct: func() float32 {
+					floats := make([]float64, len(data.SoftIrqPct))
+					for i, v := range data.SoftIrqPct { floats[i] = float64(v) }
+					return float32(getPercentile(floats, high_percentile))
+				}(),
 				//Uptime:         getIntPercentile(data.Uptime, high_percentile),
 			}
 

@@ -111,15 +111,77 @@ func GetAs[T any](key string, defaul ...any) (T, error) {
 	err := db.First(&item, "key = ?", key).Error
 	if err != nil {
 		if len(defaul) > 0 {
-			v := defaul[0].(T)
-			err = Set(key, v)
-			return v, err
+			// 处理默认值类型转换
+			defaultVal := defaul[0]
+			if v, ok := defaultVal.(T); ok {
+				err = Set(key, v)
+				return v, err
+			}
+			// 尝试数字类型转换
+			converted, convOk := convertNumericType[T](defaultVal)
+			if convOk {
+				err = Set(key, converted)
+				return converted, err
+			}
+			return t, fmt.Errorf("default value type mismatch: expected %T, got %T", t, defaultVal)
 		}
 		return t, err
 	}
 
 	err = json.Unmarshal([]byte(item.Value), &t)
 	return t, err
+}
+
+// convertNumericType 尝试将数字类型转换为目标类型 T
+func convertNumericType[T any](val any) (T, bool) {
+	var t T
+	switch any(t).(type) {
+	case float64:
+		switch v := val.(type) {
+		case int:
+			return any(float64(v)).(T), true
+		case int64:
+			return any(float64(v)).(T), true
+		case float32:
+			return any(float64(v)).(T), true
+		case float64:
+			return any(v).(T), true
+		}
+	case float32:
+		switch v := val.(type) {
+		case int:
+			return any(float32(v)).(T), true
+		case int64:
+			return any(float32(v)).(T), true
+		case float64:
+			return any(float32(v)).(T), true
+		case float32:
+			return any(v).(T), true
+		}
+	case int:
+		switch v := val.(type) {
+		case int:
+			return any(v).(T), true
+		case int64:
+			return any(int(v)).(T), true
+		case float64:
+			return any(int(v)).(T), true
+		case float32:
+			return any(int(v)).(T), true
+		}
+	case int64:
+		switch v := val.(type) {
+		case int:
+			return any(int64(v)).(T), true
+		case int64:
+			return any(v).(T), true
+		case float64:
+			return any(int64(v)).(T), true
+		case float32:
+			return any(int64(v)).(T), true
+		}
+	}
+	return t, false
 }
 
 // key[defaults]

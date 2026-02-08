@@ -190,6 +190,16 @@ func SaveClientReport(clientUUID string, report common.Report) (err error) {
 		Process:        report.Process,
 		Connections:    report.Connections.TCP,
 		ConnectionsUdp: report.Connections.UDP,
+		TimeWait:       report.TCPExtra.TimeWait,
+		RetransmitRate: float32(report.TCPExtra.RetransmitRate),
+		IoWait:         float32(report.CPU.IoWait),
+		DiskReadSpeed:  report.DiskIO.ReadSpeed,
+		DiskWriteSpeed: report.DiskIO.WriteSpeed,
+		DiskAvgQueueLen: float32(report.DiskIO.AvgQueueLen),
+		DiskAvgWaitTime: float32(report.DiskIO.AvgWaitTime),
+		NetRxDropped:   report.NetExtra.RxDropped,
+		NetTxDropped:   report.NetExtra.TxDropped,
+		SoftIrqPct:     float32(report.NetExtra.SoftIrqPct),
 		//Uptime:         report.Uptime,
 	}
 

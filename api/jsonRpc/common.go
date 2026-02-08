@@ -322,30 +322,41 @@ func getNodesLatestStatus(ctx context.Context, req *rpc.JsonRpcRequest) (any, *r
 	}
 
 	type recordLike struct {
-		Client         string              `json:"client"`
-		Time           models.LocalTime    `json:"time"`
-		Cpu            float32             `json:"cpu"`
-		Gpu            float32             `json:"gpu"`
-		Ram            int64               `json:"ram"`
-		RamTotal       int64               `json:"ram_total"`
-		Swap           int64               `json:"swap"`
-		SwapTotal      int64               `json:"swap_total"`
-		Load           float32             `json:"load"`
-		Load5          float32             `json:"load5"`
-		Load15         float32             `json:"load15"`
-		Temp           float32             `json:"temp"`
-		Disk           int64               `json:"disk"`
-		DiskTotal      int64               `json:"disk_total"`
-		NetIn          int64               `json:"net_in"`
-		NetOut         int64               `json:"net_out"`
-		NetTotalUp     int64               `json:"net_total_up"`
-		NetTotalDown   int64               `json:"net_total_down"`
-		Process        int                 `json:"process"`
-		Connections    int                 `json:"connections"`
-		ConnectionsUdp int                 `json:"connections_udp"`
-		Online         bool                `json:"online"`
-		Uptime         int64               `json:"uptime"`
-		Ping           map[string]pingStat `json:"ping"`
+		Client          string              `json:"client"`
+		Time            models.LocalTime    `json:"time"`
+		Cpu             float32             `json:"cpu"`
+		Gpu             float32             `json:"gpu"`
+		Ram             int64               `json:"ram"`
+		RamTotal        int64               `json:"ram_total"`
+		Swap            int64               `json:"swap"`
+		SwapTotal       int64               `json:"swap_total"`
+		Load            float32             `json:"load"`
+		Load5           float32             `json:"load5"`
+		Load15          float32             `json:"load15"`
+		Temp            float32             `json:"temp"`
+		Disk            int64               `json:"disk"`
+		DiskTotal       int64               `json:"disk_total"`
+		NetIn           int64               `json:"net_in"`
+		NetOut          int64               `json:"net_out"`
+		NetTotalUp      int64               `json:"net_total_up"`
+		NetTotalDown    int64               `json:"net_total_down"`
+		Process         int                 `json:"process"`
+		Connections     int                 `json:"connections"`
+		ConnectionsUdp  int                 `json:"connections_udp"`
+		Online          bool                `json:"online"`
+		Uptime          int64               `json:"uptime"`
+		Ping            map[string]pingStat `json:"ping"`
+		// New fields for PT monitoring
+		TimeWait        int                 `json:"time_wait"`
+		RetransmitRate  float32             `json:"retransmit_rate"`
+		IoWait          float32             `json:"io_wait"`
+		DiskReadSpeed   int64               `json:"disk_read_speed"`
+		DiskWriteSpeed  int64               `json:"disk_write_speed"`
+		DiskAvgQueueLen float32             `json:"disk_avg_queue_len"`
+		DiskAvgWaitTime float32             `json:"disk_avg_wait_time"`
+		NetRxDropped    int64               `json:"net_rx_dropped"`
+		NetTxDropped    int64               `json:"net_tx_dropped"`
+		SoftIrqPct      float32             `json:"softirq_pct"`
 	}
 
 	respMap := make(map[string]recordLike, len(latest))
@@ -359,30 +370,41 @@ func getNodesLatestStatus(ctx context.Context, req *rpc.JsonRpcRequest) (any, *r
 		}
 		stats := getPingStatsForNode(uuid, pingTasks)
 		rl := recordLike{
-			Client:         uuid,
-			Time:           models.FromTime(rep.UpdatedAt),
-			Cpu:            float32(rep.CPU.Usage),
-			Gpu:            0,
-			Ram:            rep.Ram.Used,
-			RamTotal:       rep.Ram.Total,
-			Swap:           rep.Swap.Used,
-			SwapTotal:      rep.Swap.Total,
-			Load:           float32(rep.Load.Load1),
-			Load5:          float32(rep.Load.Load5),
-			Load15:         float32(rep.Load.Load15),
-			Temp:           0,
-			Disk:           rep.Disk.Used,
-			DiskTotal:      rep.Disk.Total,
-			NetIn:          rep.Network.Down,
-			NetOut:         rep.Network.Up,
-			NetTotalUp:     rep.Network.TotalUp,
-			NetTotalDown:   rep.Network.TotalDown,
-			Process:        rep.Process,
-			Connections:    rep.Connections.TCP + rep.Connections.UDP,
-			ConnectionsUdp: rep.Connections.UDP,
-			Online:         onlineSet[uuid],
-			Uptime:         rep.Uptime,
-			Ping:           stats,
+			Client:          uuid,
+			Time:            models.FromTime(rep.UpdatedAt),
+			Cpu:             float32(rep.CPU.Usage),
+			Gpu:             0,
+			Ram:             rep.Ram.Used,
+			RamTotal:        rep.Ram.Total,
+			Swap:            rep.Swap.Used,
+			SwapTotal:       rep.Swap.Total,
+			Load:            float32(rep.Load.Load1),
+			Load5:           float32(rep.Load.Load5),
+			Load15:          float32(rep.Load.Load15),
+			Temp:            0,
+			Disk:            rep.Disk.Used,
+			DiskTotal:       rep.Disk.Total,
+			NetIn:           rep.Network.Down,
+			NetOut:          rep.Network.Up,
+			NetTotalUp:      rep.Network.TotalUp,
+			NetTotalDown:    rep.Network.TotalDown,
+			Process:         rep.Process,
+			Connections:     rep.Connections.TCP + rep.Connections.UDP,
+			ConnectionsUdp:  rep.Connections.UDP,
+			Online:          onlineSet[uuid],
+			Uptime:          rep.Uptime,
+			Ping:            stats,
+			// New fields
+			TimeWait:        rep.TCPExtra.TimeWait,
+			RetransmitRate:  float32(rep.TCPExtra.RetransmitRate),
+			IoWait:          float32(rep.CPU.IoWait),
+			DiskReadSpeed:   rep.DiskIO.ReadSpeed,
+			DiskWriteSpeed:  rep.DiskIO.WriteSpeed,
+			DiskAvgQueueLen: float32(rep.DiskIO.AvgQueueLen),
+			DiskAvgWaitTime: float32(rep.DiskIO.AvgWaitTime),
+			NetRxDropped:    rep.NetExtra.RxDropped,
+			NetTxDropped:    rep.NetExtra.TxDropped,
+			SoftIrqPct:      float32(rep.NetExtra.SoftIrqPct),
 		}
 		respMap[uuid] = rl
 	}
@@ -495,25 +517,36 @@ func getNodeRecentStatus(ctx context.Context, req *rpc.JsonRpcRequest) (any, *rp
 
 	// 扁平化为 { count, records: [] }
 	type flatRecord struct {
-		Client         string           `json:"client"`
-		Time           models.LocalTime `json:"time"`
-		Cpu            float32          `json:"cpu"`
-		Gpu            float32          `json:"gpu"`
-		Ram            int64            `json:"ram"`
-		RamTotal       int64            `json:"ram_total"`
-		Swap           int64            `json:"swap"`
-		SwapTotal      int64            `json:"swap_total"`
-		Load           float32          `json:"load"`
-		Temp           float32          `json:"temp"`
-		Disk           int64            `json:"disk"`
-		DiskTotal      int64            `json:"disk_total"`
-		NetIn          int64            `json:"net_in"`
-		NetOut         int64            `json:"net_out"`
-		NetTotalUp     int64            `json:"net_total_up"`
-		NetTotalDown   int64            `json:"net_total_down"`
-		Process        int              `json:"process"`
-		Connections    int              `json:"connections"`
-		ConnectionsUdp int              `json:"connections_udp"`
+		Client          string           `json:"client"`
+		Time            models.LocalTime `json:"time"`
+		Cpu             float32          `json:"cpu"`
+		Gpu             float32          `json:"gpu"`
+		Ram             int64            `json:"ram"`
+		RamTotal        int64            `json:"ram_total"`
+		Swap            int64            `json:"swap"`
+		SwapTotal       int64            `json:"swap_total"`
+		Load            float32          `json:"load"`
+		Temp            float32          `json:"temp"`
+		Disk            int64            `json:"disk"`
+		DiskTotal       int64            `json:"disk_total"`
+		NetIn           int64            `json:"net_in"`
+		NetOut          int64            `json:"net_out"`
+		NetTotalUp      int64            `json:"net_total_up"`
+		NetTotalDown    int64            `json:"net_total_down"`
+		Process         int              `json:"process"`
+		Connections     int              `json:"connections"`
+		ConnectionsUdp  int              `json:"connections_udp"`
+		// New fields for PT monitoring
+		TimeWait        int              `json:"time_wait"`
+		RetransmitRate  float32          `json:"retransmit_rate"`
+		IoWait          float32          `json:"io_wait"`
+		DiskReadSpeed   int64            `json:"disk_read_speed"`
+		DiskWriteSpeed  int64            `json:"disk_write_speed"`
+		DiskAvgQueueLen float32          `json:"disk_avg_queue_len"`
+		DiskAvgWaitTime float32          `json:"disk_avg_wait_time"`
+		NetRxDropped    int64            `json:"net_rx_dropped"`
+		NetTxDropped    int64            `json:"net_tx_dropped"`
+		SoftIrqPct      float32          `json:"softirq_pct"`
 	}
 
 	resp := struct {
@@ -531,25 +564,36 @@ func getNodeRecentStatus(ctx context.Context, req *rpc.JsonRpcRequest) (any, *rp
 	resp.Records = make([]flatRecord, 0, len(reports))
 	for _, r := range reports {
 		fr := flatRecord{
-			Client:         params.UUID,
-			Time:           models.FromTime(r.UpdatedAt),
-			Cpu:            float32(r.CPU.Usage),
-			Gpu:            0,
-			Ram:            r.Ram.Used,
-			RamTotal:       r.Ram.Total,
-			Swap:           r.Swap.Used,
-			SwapTotal:      r.Swap.Total,
-			Load:           float32(r.Load.Load1),
-			Temp:           0,
-			Disk:           r.Disk.Used,
-			DiskTotal:      r.Disk.Total,
-			NetIn:          r.Network.Down,
-			NetOut:         r.Network.Up,
-			NetTotalUp:     r.Network.TotalUp,
-			NetTotalDown:   r.Network.TotalDown,
-			Process:        r.Process,
-			Connections:    r.Connections.TCP + r.Connections.UDP,
-			ConnectionsUdp: r.Connections.UDP,
+			Client:          params.UUID,
+			Time:            models.FromTime(r.UpdatedAt),
+			Cpu:             float32(r.CPU.Usage),
+			Gpu:             0,
+			Ram:             r.Ram.Used,
+			RamTotal:        r.Ram.Total,
+			Swap:            r.Swap.Used,
+			SwapTotal:       r.Swap.Total,
+			Load:            float32(r.Load.Load1),
+			Temp:            0,
+			Disk:            r.Disk.Used,
+			DiskTotal:       r.Disk.Total,
+			NetIn:           r.Network.Down,
+			NetOut:          r.Network.Up,
+			NetTotalUp:      r.Network.TotalUp,
+			NetTotalDown:    r.Network.TotalDown,
+			Process:         r.Process,
+			Connections:     r.Connections.TCP + r.Connections.UDP,
+			ConnectionsUdp:  r.Connections.UDP,
+			// New fields
+			TimeWait:        r.TCPExtra.TimeWait,
+			RetransmitRate:  float32(r.TCPExtra.RetransmitRate),
+			IoWait:          float32(r.CPU.IoWait),
+			DiskReadSpeed:   r.DiskIO.ReadSpeed,
+			DiskWriteSpeed:  r.DiskIO.WriteSpeed,
+			DiskAvgQueueLen: float32(r.DiskIO.AvgQueueLen),
+			DiskAvgWaitTime: float32(r.DiskIO.AvgWaitTime),
+			NetRxDropped:    r.NetExtra.RxDropped,
+			NetTxDropped:    r.NetExtra.TxDropped,
+			SoftIrqPct:      float32(r.NetExtra.SoftIrqPct),
 		}
 		resp.Records = append(resp.Records, fr)
 	}

@@ -90,6 +90,16 @@ type Record struct {
 	Process        int       `json:"process"`
 	Connections    int       `json:"connections"`
 	ConnectionsUdp int       `json:"connections_udp"`
+	TimeWait       int       `json:"time_wait"`
+	RetransmitRate float32   `json:"retransmit_rate" gorm:"type:decimal(5,4)"`
+	IoWait         float32   `json:"io_wait" gorm:"type:decimal(5,2)"`
+	DiskReadSpeed  int64     `json:"disk_read_speed" gorm:"type:bigint"`
+	DiskWriteSpeed int64     `json:"disk_write_speed" gorm:"type:bigint"`
+	DiskAvgQueueLen float32  `json:"disk_avg_queue_len" gorm:"type:decimal(8,2)"`
+	DiskAvgWaitTime float32  `json:"disk_avg_wait_time" gorm:"type:decimal(8,2)"`
+	NetRxDropped   int64     `json:"net_rx_dropped" gorm:"type:bigint"`
+	NetTxDropped   int64     `json:"net_tx_dropped" gorm:"type:bigint"`
+	SoftIrqPct     float32   `json:"softirq_pct" gorm:"type:decimal(5,2)"`
 	//Uptime         int64     `json:"uptime" gorm:"type:bigint"`
 }
 

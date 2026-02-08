@@ -6,7 +6,7 @@ WORKDIR /app
 ARG TARGETOS
 ARG TARGETARCH
 
-RUN apk add --no-cache tzdata
+RUN apk add --no-cache tzdata ca-certificates
 
 COPY komari-${TARGETOS}-${TARGETARCH} /app/komari
 

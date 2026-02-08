@@ -67,8 +67,11 @@ type Report struct {
 	Swap        RamReport         `json:"swap"`
 	Load        LoadReport        `json:"load"`
 	Disk        DiskReport        `json:"disk"`
+	DiskIO      DiskIOReport      `json:"disk_io"`
 	Network     NetworkReport     `json:"network"`
 	Connections ConnectionsReport `json:"connections"`
+	TCPExtra    TCPExtraReport    `json:"tcp_extra"`
+	NetExtra    NetExtraReport    `json:"net_extra"`
 	GPU         *GPUDetailReport  `json:"gpu,omitempty"` // 新增GPU详细信息
 	Uptime      int64             `json:"uptime"`
 	Process     int               `json:"process"`
@@ -78,10 +81,11 @@ type Report struct {
 }
 
 type CPUReport struct {
-	Name  string  `json:"name,omitempty"`
-	Cores int     `json:"cores,omitempty"`
-	Arch  string  `json:"arch,omitempty"`
-	Usage float64 `json:"usage,omitempty"`
+	Name   string  `json:"name,omitempty"`
+	Cores  int     `json:"cores,omitempty"`
+	Arch   string  `json:"arch,omitempty"`
+	Usage  float64 `json:"usage,omitempty"`
+	IoWait float64 `json:"io_wait,omitempty"`
 }
 
 // GPUDetailReport 详细GPU信息报告
@@ -132,4 +136,24 @@ type NetworkReport struct {
 type ConnectionsReport struct {
 	TCP int `json:"tcp"`
 	UDP int `json:"udp"`
+}
+
+type TCPExtraReport struct {
+	TimeWait       int     `json:"time_wait"`
+	RetransmitRate float64 `json:"retransmit_rate"`
+}
+
+type DiskIOReport struct {
+	ReadSpeed    int64   `json:"read_speed"`
+	WriteSpeed   int64   `json:"write_speed"`
+	AvgQueueLen  float64 `json:"avg_queue_len"`
+	AvgWaitTime  float64 `json:"avg_wait_time"`
+}
+
+type NetExtraReport struct {
+	RxDropped  int64   `json:"rx_dropped"`
+	TxDropped  int64   `json:"tx_dropped"`
+	RxErrors   int64   `json:"rx_errors"`
+	TxErrors   int64   `json:"tx_errors"`
+	SoftIrqPct float64 `json:"softirq_pct"`
 }
