@@ -426,6 +426,18 @@ func DoScheduledWork() {
 func OnShutdown() {
 	auditlog.Log("", "", "server is shutting down", "info")
 	cloudflared.Kill()
+	
+	// Close database connection and checkpoint WAL
+	db := dbcore.GetDBInstance()
+	if db != nil {
+		sqlDB, err := db.DB()
+		if err == nil {
+			// Force WAL checkpoint before closing
+			db.Exec("PRAGMA wal_checkpoint(TRUNCATE);")
+			sqlDB.Close()
+			log.Println("Database connection closed")
+		}
+	}
 }
 
 func OnFatal(err error) {

@@ -7,6 +7,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
+	"github.com/komari-monitor/komari/config"
 	"github.com/komari-monitor/komari/database/auditlog"
 	"github.com/komari-monitor/komari/database/clients"
 	"github.com/komari-monitor/komari/utils"
@@ -29,8 +30,14 @@ func RequestTerminal(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"status": "error", "message": "Require WebSocket upgrade"})
 		return
 	}
+	AllowCors, _ := config.GetAs[bool](config.AllowCorsKey, false)
 	upgrader := websocket.Upgrader{
-		CheckOrigin: ws.CheckOrigin,
+		CheckOrigin: func(r *http.Request) bool {
+			if AllowCors {
+				return true
+			}
+			return ws.CheckOrigin(r)
+		},
 	}
 	conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
 	if err != nil {
