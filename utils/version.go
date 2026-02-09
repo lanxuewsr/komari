@@ -1,6 +1,6 @@
 package utils
 
 var (
-	CurrentVersion = "1.2.0-lan"
+	CurrentVersion = "1.2.1-lan"
 	VersionHash    = "lanxuewsr"
 )
