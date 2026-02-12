@@ -39,6 +39,8 @@ func SaveClientReportToDB() error {
 	var records []models.Record
 	var gpuRecords []models.GPURecord
 
+	// itemCount := Records.ItemCount()
+
 	// 遍历所有客户端记录
 	for uuid, x := range Records.Items() {
 		if uuid == "" {
@@ -50,6 +52,7 @@ func SaveClientReportToDB() error {
 			log.Printf("Invalid report type for UUID %s", uuid)
 			continue
 		}
+		// log.Printf("Processing UUID %s with %d reports", uuid, len(reports))
 
 		// 过滤一分钟前的记录
 		var filtered []common.Report
@@ -86,9 +89,10 @@ func SaveClientReportToDB() error {
 		for _, rec := range unique {
 			deduped = append(deduped, rec)
 		}
-		if err := db.Model(&models.Record{}).Create(&deduped).Error; err != nil {
-			log.Printf("Failed to save records to database: %v", err)
-			return err
+		result := db.Create(&deduped)
+		if result.Error != nil {
+			log.Printf("Failed to save records to database: %v", result.Error)
+			return result.Error
 		}
 	}
 

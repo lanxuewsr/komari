@@ -104,6 +104,24 @@ func AverageReport(uuid string, time time.Time, records []common.Report, topPerc
 		}
 	}
 
+	// 计算新增字段的平均值（始终计算所有记录的平均值）
+	var sumTimeWait int
+	var sumRetransmitRate, sumIoWait, sumDiskAvgQueueLen, sumDiskAvgWaitTime, sumSoftIrqPct float64
+	var sumDiskReadSpeed, sumDiskWriteSpeed, sumNetRxDropped, sumNetTxDropped int64
+
+	for _, r := range records {
+		sumTimeWait += r.TCPExtra.TimeWait
+		sumRetransmitRate += r.TCPExtra.RetransmitRate
+		sumIoWait += r.CPU.IoWait
+		sumDiskReadSpeed += r.DiskIO.ReadSpeed
+		sumDiskWriteSpeed += r.DiskIO.WriteSpeed
+		sumDiskAvgQueueLen += r.DiskIO.AvgQueueLen
+		sumDiskAvgWaitTime += r.DiskIO.AvgWaitTime
+		sumNetRxDropped += r.NetExtra.RxDropped
+		sumNetTxDropped += r.NetExtra.TxDropped
+		sumSoftIrqPct += r.NetExtra.SoftIrqPct
+	}
+
 	// 创建新的聚合记录
 	newRecord := models.Record{
 		Client:         uuid,
@@ -125,6 +143,17 @@ func AverageReport(uuid string, time time.Time, records []common.Report, topPerc
 		Process:        sumPROCESS / recordsToAverageCount,
 		Connections:    sumConnections / recordsToAverageCount,
 		ConnectionsUdp: sumConnectionsUDP / recordsToAverageCount,
+		// 新增字段
+		TimeWait:         sumTimeWait / count,
+		RetransmitRate:   float32(sumRetransmitRate / float64(count)),
+		IoWait:           float32(sumIoWait / float64(count)),
+		DiskReadSpeed:    sumDiskReadSpeed / int64(count),
+		DiskWriteSpeed:   sumDiskWriteSpeed / int64(count),
+		DiskAvgQueueLen:  float32(sumDiskAvgQueueLen / float64(count)),
+		DiskAvgWaitTime:  float32(sumDiskAvgWaitTime / float64(count)),
+		NetRxDropped:     sumNetRxDropped / int64(count),
+		NetTxDropped:     sumNetTxDropped / int64(count),
+		SoftIrqPct:       float32(sumSoftIrqPct / float64(count)),
 	}
 	return newRecord
 }
